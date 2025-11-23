@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>استمارة كشافة مارجرجس - احتفال الميلاد</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            /* Christmas Night Gradient */
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            overflow-x: hidden;
+            color: #333;
+        }
+
+        /* Snow Effect */
+        .snowflake {
+            position: absolute; top: -10px; background: white; border-radius: 50%;
+            opacity: 0.8; animation: fall linear infinite; z-index: 1; pointer-events: none;
+        }
+        @keyframes fall { to { transform: translateY(105vh); } }
+
+        /* Fancy Card Styling */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(15px);
+            border-radius: 25px; 
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2); 
+            position: relative; 
+            z-index: 10;
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+        
+        /* Christmas Border Top */
+        .christmas-border {
+            height: 8px;
+            background: repeating-linear-gradient(
+                45deg,
+                #c0392b,
+                #c0392b 20px,
+                #27ae60 20px,
+                #27ae60 40px
+            );
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .custom-input { transition: all 0.3s ease; border: 2px solid #e2e8f0; }
+        .custom-input:focus { border-color: #c0392b; box-shadow: 0 0 0 4px rgba(192, 57, 43, 0.1); outline: none; }
+        
+        .file-upload-wrapper { border: 2px dashed #c0392b; background-color: #fff5f5; transition: all 0.3s; }
+        .file-upload-wrapper:hover { background-color: #ffecec; border-color: #a93226; transform: translateY(-2px); }
+
+        /* Animations */
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .hidden-section { display: none; }
+    </style>
+</head>
+<body class="min-h-screen relative pb-20 flex flex-col items-center justify-center">
+
+    <div id="snow-container" class="fixed inset-0 pointer-events-none w-full h-full overflow-hidden"></div>
+
+    <!-- ================= WELCOME PAGE (Intro) ================= -->
+    <div id="welcomePage" class="container mx-auto px-4 z-20 fade-in max-w-lg">
+        <div class="glass-card p-10 text-center relative">
+            <div class="christmas-border"></div>
+            <div class="mb-6 relative inline-block">
+                <i class="fas fa-tree text-6xl text-green-600 drop-shadow-lg"></i>
+                <i class="fas fa-star text-yellow-400 text-2xl absolute -top-2 right-4 animate-pulse"></i>
+            </div>
+            <h1 class="text-4xl font-black text-gray-800 mb-2">كشافة مارجرجس</h1>
+            <h2 class="text-xl text-red-600 font-bold mb-6">احتفال الكريسماس 2025</h2>
+            <p class="text-gray-600 mb-8 leading-relaxed text-lg font-bold">
+                أهلاً بيك يا قائد! ⚜️<br>
+                شبابنا الطعم الحلو.. منورين الدنيا.<br>
+                جهز صورتك بالزي (أو صورة حلوة ليك) ويلا نسجل!
+            </p>
+            <button onclick="showForm()" class="w-full bg-gradient-to-r from-red-600 to-red-800 text-white font-bold py-4 rounded-xl shadow-lg hover:scale-105 transition transform text-xl">
+                <i class="fas fa-rocket ml-2"></i> جاهز يا قائد
+            </button>
+        </div>
+    </div>
+
+    <!-- ================= FORM PAGE ================= -->
+    <div id="formPage" class="container mx-auto px-4 z-20 hidden-section fade-in">
+        <div class="glass-card w-full max-w-2xl p-8 relative mb-12 mx-auto">
+            <div class="christmas-border"></div>
+            
+            <div class="text-center mt-6 mb-8">
+                <button onclick="goBackToWelcome()" class="absolute top-6 left-6 text-gray-400 hover:text-gray-600"><i class="fas fa-arrow-right text-xl"></i></button>
+                <h2 class="text-2xl font-black text-gray-800">بيانات الشفتان</h2>
+                <div id="statusBox" class="mt-2 text-xs font-bold text-gray-500 hidden"></div>
+            </div>
+
+            <form id="scoutForm" class="space-y-5">
+                <!-- Name Arabic -->
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2"><i class="fas fa-user text-red-600 ml-2"></i>الاسم بالكامل (عربي)</label>
+                    <input type="text" id="name" required placeholder="اسمك إيه يا قائد؟" class="custom-input w-full p-4 rounded-xl bg-gray-50">
+                </div>
+                <!-- Name English (NEW) -->
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2"><i class="fas fa-font text-purple-600 ml-2"></i>الاسم (English)</label>
+                    <input type="text" id="nameEn" required placeholder="Your Name" class="custom-input w-full p-4 rounded-xl bg-gray-50 text-left" dir="ltr">
+                </div>
+                <!-- Phone -->
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2"><i class="fas fa-phone text-green-600 ml-2"></i>رقم الموبايل</label>
+                    <input type="tel" id="phone" required placeholder="01xxxxxxxxx" pattern="[0-9]{11}" class="custom-input w-full p-4 rounded-xl bg-gray-50">
+                </div>
+                <!-- Address -->
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2"><i class="fas fa-map-marker-alt text-red-600 ml-2"></i>العنوان</label>
+                    <input type="text" id="address" required placeholder="ساكن فين؟" class="custom-input w-full p-4 rounded-xl bg-gray-50">
+                </div>
+                <!-- Verse -->
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2"><i class="fas fa-bible text-yellow-600 ml-2"></i>آية بتحبها</label>
+                    <textarea id="verse" rows="2" required placeholder="اكتب الآية هنا..." class="custom-input w-full p-4 rounded-xl bg-gray-50"></textarea>
+                </div>
+                <!-- Notes -->
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2"><i class="fas fa-comment-alt text-blue-500 ml-2"></i>عندك أي ملحوظة؟ (اختياري)</label>
+                    <textarea id="notes" rows="2" placeholder="عايز تقولنا حاجة زيادة؟ اكتبها هنا.." class="custom-input w-full p-4 rounded-xl bg-gray-50"></textarea>
+                </div>
+                <!-- Image -->
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2"><i class="fas fa-camera text-blue-600 ml-2"></i>صورة ليك</label>
+                    <div class="file-upload-wrapper rounded-xl p-6 text-center cursor-pointer relative" onclick="document.getElementById('fileInput').click()">
+                        <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+                        <div id="uploadPrompt">
+                            <i class="fas fa-cloud-upload-alt text-4xl text-red-400 mb-2"></i>
+                            <p class="text-sm text-gray-600 font-bold">دوس هنا يا شفتان واختار الصورة</p>
+                        </div>
+                        <div id="previewContainer" class="hidden mt-2">
+                            <img id="imagePreview" src="" class="max-h-48 mx-auto rounded-lg shadow-md border-4 border-white">
+                            <button type="button" onclick="removeImage(event)" class="mt-2 text-red-500 text-sm font-bold hover:text-red-700"><i class="fas fa-trash"></i> حذف</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="w-full bg-gradient-to-r from-green-600 to-green-800 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 text-xl flex justify-center items-center gap-2">
+                    <i class="fas fa-check-circle"></i> <span>تسجيل البيانات</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= THANK YOU PAGE (Outro) ================= -->
+    <div id="thankYouPage" class="container mx-auto px-4 z-20 hidden-section fade-in max-w-lg">
+        <div class="glass-card p-10 text-center relative">
+            <div class="christmas-border"></div>
+            <div class="mb-6">
+                <i class="fas fa-check-circle text-7xl text-green-500 animate-bounce"></i>
+            </div>
+            <h2 class="text-3xl font-black text-gray-800 mb-2">تمام يا قائد!</h2>
+            <p class="text-gray-600 text-lg mb-8">
+                بياناتك وصلت بالسلامة.<br>
+                مستنيينك تنورنا.. يا شبابنا الحلو 🎄❤️
+            </p>
+            <div class="bg-red-50 p-4 rounded-xl border border-red-100 mb-6">
+                <p class="text-sm text-red-800 font-bold"><i class="fas fa-gift mr-1"></i> كل سنة وأنت طيب!</p>
+            </div>
+            <button onclick="resetApp()" class="w-full bg-gray-100 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-200 transition">
+                تسجيل حد تاني
+            </button>
+        </div>
+    </div>
+
+    <!-- ADMIN BUTTON -->
+    <div class="fixed bottom-4 left-4 z-50">
+         <button onclick="requestAdminAccess()" class="bg-white/20 hover:bg-white/40 text-white p-2 rounded-full backdrop-blur-sm transition" title="دخول الخدام">
+            <i class="fas fa-lock"></i>
+        </button>
+    </div>
+
+    <!-- ADMIN PANEL -->
+    <div id="adminPanel" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-center items-center p-4">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-xl font-bold text-gray-800"><i class="fas fa-users-cog text-blue-600 ml-2"></i>لوحة القادة</h3>
+                <button onclick="document.getElementById('adminPanel').classList.add('hidden')" class="text-gray-500 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            
+            <div class="flex gap-2 mb-4">
+                 <button onclick="downloadExcel()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-bold flex-1">
+                    <i class="fas fa-file-excel ml-1"></i> تحميل Excel
+                </button>
+                <button onclick="listenToScoutsData()" class="bg-blue-100 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-200 font-bold">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto pr-2">
+                 <div id="scoutsList" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <p class="text-center w-full col-span-2 text-gray-400 py-10">جاري التحميل...</p>
+                 </div>
+            </div>
+            <div class="mt-2 text-center text-xs text-gray-400">عدد المسجلين: <span id="scoutCount" class="font-bold text-blue-600">0</span></div>
+        </div>
+    </div>
+
+    <script>
+        // --- NAVIGATION LOGIC ---
+        function showForm() {
+            document.getElementById('welcomePage').classList.add('hidden-section');
+            document.getElementById('formPage').classList.remove('hidden-section');
+            document.getElementById('thankYouPage').classList.add('hidden-section');
+        }
+
+        function showThankYou() {
+            document.getElementById('welcomePage').classList.add('hidden-section');
+            document.getElementById('formPage').classList.add('hidden-section');
+            document.getElementById('thankYouPage').classList.remove('hidden-section');
+        }
+
+        function goBackToWelcome() {
+            document.getElementById('welcomePage').classList.remove('hidden-section');
+            document.getElementById('formPage').classList.add('hidden-section');
+            document.getElementById('thankYouPage').classList.add('hidden-section');
+        }
+
+        function resetApp() {
+            document.getElementById('scoutForm').reset();
+            removeImage();
+            goBackToWelcome();
+        }
+
+        // --- FIREBASE CONFIG ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDT8_VbsXFsVH-sCBxZS1uDz4nleDRMKx0",
+            authDomain: "scout-team-caf46.firebaseapp.com",
+            projectId: "scout-team-caf46",
+            storageBucket: "scout-team-caf46.firebasestorage.app",
+            messagingSenderId: "889902631654",
+            appId: "1:889902631654:web:372182dfb5228006d20927",
+            measurementId: "G-DWLYQ2VCCW"
+        };
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const collectionPath = db.collection('christmas_scouts_2025');
+
+        let currentUser = null;
+        let selectedImageBase64 = null; 
+        let allScoutsData = []; 
+
+        // --- AUTH ---
+        const statusBox = document.getElementById('statusBox');
+        function setStatus(msg, color='text-gray-500') {
+            statusBox.classList.remove('hidden');
+            statusBox.innerHTML = msg;
+            statusBox.className = `mt-2 text-xs font-bold ${color}`;
+        }
+
+        auth.onAuthStateChanged((user) => {
+            currentUser = user;
+            if (user) {
+                setStatus('<i class="fas fa-wifi text-green-500"></i> متصل', 'text-green-600');
+                listenToScoutsData();
+            } else {
+                auth.signInAnonymously().catch(e => setStatus('مشكلة اتصال', 'text-red-500'));
+            }
+        });
+
+        // --- FORM SUBMIT ---
+        document.getElementById('scoutForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!currentUser) { alert("ثواني بنحمل السيستم..."); return; }
+            
+            const btn = document.getElementById('submitBtn');
+            const originalBtn = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...'; 
+            btn.disabled = true;
+
+            const scoutData = {
+                name: document.getElementById('name').value,
+                nameEn: document.getElementById('nameEn').value, // SAVING ENGLISH NAME
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                verse: document.getElementById('verse').value,
+                notes: document.getElementById('notes').value || "لا يوجد", 
+                imageUrl: selectedImageBase64 || null, 
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                displayDate: new Date().toLocaleString('ar-EG') 
+            };
+
+            try {
+                await collectionPath.add(scoutData);
+                showThankYou(); 
+            } catch (error) {
+                console.error(error);
+                alert("حصل مشكلة: " + error.message);
+            } finally {
+                btn.innerHTML = originalBtn; 
+                btn.disabled = false;
+            }
+        });
+
+        // --- IMAGES ---
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('imagePreview').src = e.target.result;
+                document.getElementById('uploadPrompt').classList.add('hidden');
+                document.getElementById('previewContainer').classList.remove('hidden');
+                
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const maxWidth = 600;
+                    let width = img.width; height = img.height;
+                    if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
+                    canvas.width = width; canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    selectedImageBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                };
+            }
+            reader.readAsDataURL(file);
+        }
+        function removeImage(e) {
+            if(e) e.stopPropagation();
+            document.getElementById('fileInput').value = '';
+            document.getElementById('uploadPrompt').classList.remove('hidden');
+            document.getElementById('previewContainer').classList.add('hidden');
+            selectedImageBase64 = null;
+        }
+
+        // --- ADMIN ---
+        function requestAdminAccess() {
+            const pwd = prompt("كلمة سر القادة:");
+            if (pwd === "2025") {
+                document.getElementById('adminPanel').classList.remove('hidden');
+                listenToScoutsData();
+            } else if (pwd) alert("غلط!");
+        }
+
+        function listenToScoutsData() {
+            if(!currentUser) return;
+            collectionPath.onSnapshot(snapshot => {
+                const list = document.getElementById('scoutsList');
+                list.innerHTML = '';
+                allScoutsData = [];
+                const scouts = [];
+                snapshot.forEach(doc => scouts.push({id:doc.id, ...doc.data()}));
+                scouts.sort((a,b) => (b.timestamp?.seconds||0) - (a.timestamp?.seconds||0));
+                allScoutsData = scouts;
+                document.getElementById('scoutCount').innerText = scouts.length;
+
+                if(scouts.length === 0) { list.innerHTML = '<p class="col-span-2 text-center text-gray-400">مفيش بيانات</p>'; return; }
+
+                scouts.forEach(s => {
+                    // Logic to use English name for file download if available, else Arabic
+                    const downloadName = s.nameEn ? `Scout_${s.nameEn.replace(/\s+/g, '_')}.jpg` : `Scout_${s.phone}.jpg`;
+                    
+                    const img = s.imageUrl 
+                        ? `<a href="${s.imageUrl}" download="${downloadName}" class="block w-16 h-16 rounded-lg overflow-hidden border-2 border-green-500 hover:opacity-80 transition shadow-sm relative group" title="اضغط للتحميل">
+                             <img src="${s.imageUrl}" class="w-full h-full object-cover">
+                             <div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><i class="fas fa-download text-white"></i></div>
+                           </a>` 
+                        : `<div class="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 border border-gray-200"><i class="fas fa-user"></i></div>`;
+
+                    // Extra download button text for clarity
+                    const downloadTextLink = s.imageUrl 
+                        ? `<a href="${s.imageUrl}" download="${downloadName}" class="text-xs text-blue-600 hover:underline mt-1 block font-bold"><i class="fas fa-download"></i> تحميل الصورة</a>`
+                        : ``;
+
+                    list.innerHTML += `
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 flex items-start gap-3 hover:shadow-md transition">
+                            <div class="flex flex-col items-center">
+                                ${img}
+                                ${downloadTextLink}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-bold text-gray-800 text-base truncate">${s.name}</h4>
+                                <p class="text-xs text-gray-500 font-mono">${s.nameEn || '-'}</p>
+                                <p class="text-xs text-gray-600 mt-1"><i class="fas fa-phone text-green-600 ml-1"></i> ${s.phone}</p>
+                                <p class="text-xs text-blue-600 mt-1 truncate bg-blue-50 inline-block px-2 py-1 rounded border border-blue-100">م: ${s.notes || '—'}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+        }
+
+        function downloadExcel() {
+            if (allScoutsData.length === 0) return alert("مفيش بيانات!");
+            // Added English Name column
+            let csv = "\uFEFFالاسم,Name(En),الموبايل,العنوان,الآية,ملحوظات,تاريخ\n";
+            allScoutsData.forEach(r => {
+                csv += `"${r.name}","${r.nameEn || ''}","${r.phone}","${r.address}","${(r.verse||'').replace(/\n/g,' ')}","${(r.notes||'').replace(/\n/g,' ')}","${r.displayDate}"\n`;
+            });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv;charset=utf-8;'}));
+            link.download = "scouts_2025.csv";
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+
+        // Snow Animation
+        setInterval(() => {
+            const s = document.createElement('div'); s.className = 'snowflake';
+            const size = Math.random()*5+2+'px'; s.style.width=size; s.style.height=size;
+            s.style.left=Math.random()*100+'vw'; s.style.animationDuration=Math.random()*3+4+'s';
+            document.getElementById('snow-container').appendChild(s);
+            setTimeout(()=>s.remove(), 5000);
+        }, 100);
+    </script>
+</body>
+</html>
