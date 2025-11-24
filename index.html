@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>استمارة كشافة سان جورج - احتفال الميلاد</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,34 +13,56 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <!-- Confetti Library for Celebration -->
+    <!-- Confetti Library -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
+        /* FIX ANDROID ZOOM ISSUE */
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden; /* Prevent horizontal scroll */
+            position: relative;
+        }
+
         body {
             font-family: 'Cairo', sans-serif;
             background: linear-gradient(to bottom, #090a0f 0%, #1b2735 50%, #090a0f 100%);
-            overflow-x: hidden;
             color: #333;
-            position: relative;
             min-height: 100vh;
-            margin: 0;
-            padding-bottom: 40px; /* Space for footer */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-bottom: 40px; /* Footer space */
+        }
+
+        /* Scenery Wrapper to contain overflowing elements */
+        .scenery-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
         }
 
         /* --- CSS SCENERY --- */
         .css-moon {
-            position: fixed; top: 50px; left: 50px; width: 80px; height: 80px;
+            position: absolute; top: 50px; left: 50px; width: 80px; height: 80px;
             background: #f6f1d5; border-radius: 50%; box-shadow: 0 0 40px #f6f1d5; z-index: 1;
         }
         .css-ground {
-            position: fixed; bottom: -50px; left: 0; width: 100%; height: 150px;
+            position: absolute; bottom: -50px; left: -25%; width: 150%; height: 150px;
             background: linear-gradient(to bottom, #e6f3ff, #fff);
-            border-radius: 50% 50% 0 0 / 100% 100% 0 0; transform: scaleX(1.5);
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
             z-index: 2; box-shadow: 0 -10px 20px rgba(255,255,255,0.3);
         }
         .css-tree {
-            position: fixed; bottom: 80px; z-index: 1; width: 0; height: 0;
+            position: absolute; bottom: 80px; z-index: 1; width: 0; height: 0;
             border-left: 30px solid transparent; border-right: 30px solid transparent;
             border-bottom: 100px solid #1a3c34; filter: drop-shadow(0 0 10px rgba(0,0,0,0.3));
         }
@@ -64,28 +86,13 @@
         }
         @keyframes twinkle { 0% { opacity: 0.3; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1.2); } }
 
-        /* Snowmen */
-        .snowman-decoration {
-            position: fixed; bottom: 10px; left: 20px; font-size: 70px; z-index: 6;
-            animation: sway 3s ease-in-out infinite alternate; filter: drop-shadow(0 0 10px rgba(255,255,255,0.5));
-            cursor: pointer; user-select: none; transition: transform 0.2s;
-        }
-        .snowman-decoration:active { transform: scale(0.9) rotate(10deg); }
-        @keyframes sway { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
-
-        .snowman-top-right {
-            position: fixed; top: 20px; right: 20px; font-size: 60px; z-index: 6;
-            animation: bounce 2s infinite; filter: drop-shadow(0 0 10px rgba(255,255,255,0.5));
-            cursor: default; user-select: none;
-        }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-
         /* UI ELEMENTS */
         .glass-card {
             background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px);
             border-radius: 25px; border: 2px solid rgba(255, 255, 255, 0.6);
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); position: relative; 
             z-index: 10; overflow: hidden; transition: all 0.4s ease;
+            margin-top: 60px; /* Ensure spacing from top */
         }
         
         .christmas-border {
@@ -121,8 +128,6 @@
             transform: translateY(-5px) scale(1.02);
             box-shadow: 0 15px 30px rgba(0,0,0,0.2);
         }
-        .selection-btn.active-scout { border: 3px solid #27ae60; background: #f0fff4; }
-        .selection-btn.active-shaftan { border: 3px solid #8e44ad; background: #f3e5f5; }
 
         /* Music Player */
         .music-player-card {
@@ -144,7 +149,6 @@
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 4px 10px rgba(39, 174, 96, 0.4); transition: all 0.3s;
         }
-        .player-controls button:hover { transform: scale(1.1); background: #2ecc71; }
         .player-controls button.paused { background: #c0392b; }
         .equalizer { display: flex; gap: 3px; height: 15px; align-items: flex-end; }
         .bar { width: 4px; background: #c0392b; animation: equalize 1s ease-in-out infinite; }
@@ -154,15 +158,18 @@
         @keyframes equalize { 0% { height: 5px; } 50% { height: 100%; } 100% { height: 5px; } }
         .equalizer.stopped .bar { animation: none; height: 3px; }
 
-        .hidden-video-container { position: absolute; top: -9999px; left: -9999px; width: 1px; height: 1px; opacity: 0; z-index: -100; }
+        .hidden-video-container { width: 0; height: 0; overflow: hidden; opacity: 0; position: absolute; }
         .music-playing-float { color: #27ae60 !important; animation: pulse 1s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        
+        /* Buttons visibility on top */
         #floatMusicBtn, .admin-btn { z-index: 50 !important; box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important; }
 
         /* Countdown Style */
         .countdown-box {
             background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 10px; margin-bottom: 20px;
-            display: flex; justify-content: center; gap: 15px; color: white; border: 1px solid rgba(255,255,255,0.2);
+            display: flex; justify-content: center; gap: 10px; color: white; border: 1px solid rgba(255,255,255,0.2);
+            flex-wrap: wrap;
         }
         .count-item { text-align: center; }
         .count-val { font-size: 1.5rem; font-weight: 900; color: #f1c40f; line-height: 1; }
@@ -180,24 +187,41 @@
         .modal-overlay {
             background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
         }
+        
+        /* Snowmen (Fixed to not overflow) */
+        .snowman-decoration {
+            position: fixed; bottom: 10px; left: 20px; font-size: 60px; z-index: 5;
+            animation: sway 3s ease-in-out infinite alternate;
+            cursor: pointer; user-select: none;
+        }
+        .snowman-top-right {
+            position: fixed; top: 20px; right: 20px; font-size: 50px; z-index: 5;
+            animation: bounce 2s infinite;
+            cursor: default; user-select: none;
+        }
+        @keyframes sway { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
     </style>
 </head>
-<body class="min-h-screen relative flex flex-col items-center justify-center">
+<body>
 
-    <div id="snow-container" class="fixed inset-0 pointer-events-none w-full h-full overflow-hidden"></div>
-    <div id="star-container" class="fixed inset-0 pointer-events-none w-full h-full overflow-hidden z-0"></div>
-
-    <div class="css-moon"></div>
-    <div class="css-ground"></div>
-    <div class="css-tree tree-1"></div>
-    <div class="css-tree tree-2"></div>
-    <div class="css-tree tree-3"></div>
-    <div class="css-tree tree-4"></div>
-
-    <!-- Snowman with Click Action -->
-    <div class="snowman-decoration" onclick="happySnowman()">☃️</div>
-    <div class="snowman-top-right">⛄</div>
+    <!-- SCENERY CONTAINER (Clips overflow to fix mobile zoom) -->
+    <div class="scenery-container">
+        <div id="snow-container" class="absolute inset-0 w-full h-full"></div>
+        <div id="star-container" class="absolute inset-0 w-full h-full"></div>
+        
+        <div class="css-moon"></div>
+        <div class="css-ground"></div>
+        <div class="css-tree tree-1"></div>
+        <div class="css-tree tree-2"></div>
+        <div class="css-tree tree-3"></div>
+        <div class="css-tree tree-4"></div>
+        
+        <!-- Snowmen inside scenery to respect z-index -->
+        <div class="snowman-decoration" onclick="happySnowman()">☃️</div>
+        <div class="snowman-top-right">⛄</div>
+    </div>
 
     <div class="hidden-video-container">
         <video id="localVideo" playsinline loop crossorigin="anonymous">
@@ -205,15 +229,21 @@
         </video>
     </div>
 
-    <div class="fixed top-4 right-4 z-50" style="top: 100px;">
-        <button id="floatMusicBtn" onclick="toggleVideoMusic()" class="bg-white/90 backdrop-blur-md text-gray-500 p-3 rounded-full shadow-lg border border-white hover:bg-white transition hidden" title="تشغيل/إيقاف" style="box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+    <!-- Music Button (Top Right) -->
+    <div class="fixed top-4 right-4 z-50">
+        <button id="floatMusicBtn" onclick="toggleVideoMusic()" class="bg-white/90 backdrop-blur-md text-gray-500 p-3 rounded-full shadow-lg border border-white hover:bg-white transition hidden" title="تشغيل/إيقاف">
             <i class="fas fa-volume-mute text-xl"></i>
         </button>
     </div>
 
+    <!-- ADMIN PANEL BUTTON (Top Left) -->
+    <div class="fixed top-4 left-4 z-50">
+         <button onclick="requestAdminAccess()" class="admin-btn bg-white/90 hover:bg-white text-gray-600 hover:text-red-600 p-3 rounded-full backdrop-blur-md transition shadow-lg border border-white"><i class="fas fa-lock text-xl"></i></button>
+    </div>
+
     <!-- ================= WELCOME PAGE ================= -->
     <div id="welcomePage" class="container mx-auto px-4 z-20 fade-in max-w-lg w-full">
-        <div class="glass-card p-6 md:p-8 text-center relative" style="margin-top: 40px;">
+        <div class="glass-card p-6 md:p-8 text-center relative">
             <div class="christmas-border"></div>
             
             <div class="mb-2 relative inline-block mt-4">
@@ -274,7 +304,7 @@
 
     <!-- ================= SELECTION PAGE ================= -->
     <div id="selectionPage" class="container mx-auto px-4 z-20 hidden-section fade-in max-w-lg">
-        <div class="glass-card p-8 text-center relative" style="margin-top: 40px;">
+        <div class="glass-card p-8 text-center relative">
             <div class="christmas-border"></div>
             <button onclick="goBackToWelcome()" class="absolute top-6 left-6 text-gray-400 hover:text-gray-600 transition hover:scale-110"><i class="fas fa-arrow-right text-xl"></i></button>
             
@@ -342,12 +372,12 @@
                     <textarea id="notes" rows="2" placeholder="عايز تقولنا حاجة زيادة؟ اكتبها هنا.." class="custom-input w-full p-4 rounded-xl bg-gray-50"></textarea>
                 </div>
                 <div>
-                    <label id="lbl-photo" class="block text-gray-700 font-bold mb-2"><i class="fas fa-camera text-blue-600 ml-2"></i>صورة ليك</label>
+                    <label id="lbl-photo" class="block text-gray-700 font-bold mb-2"><i class="fas fa-camera text-blue-600 ml-2"></i>صورة ليك <span class="text-red-600 text-xl">*</span></label>
                     <div class="file-upload-wrapper rounded-xl p-6 text-center cursor-pointer relative" onclick="document.getElementById('fileInput').click()">
                         <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
                         <div id="uploadPrompt">
                             <i class="fas fa-cloud-upload-alt text-4xl text-red-400 mb-2"></i>
-                            <p id="txt-upload-prompt" class="text-sm text-gray-600 font-bold">دوس هنا يا باشا واختار الصورة</p>
+                            <p id="txt-upload-prompt" class="text-sm text-gray-600 font-bold">دوس هنا يا باشا واختار الصورة (إجباري)</p>
                         </div>
                         <div id="previewContainer" class="hidden mt-2">
                             <img id="imagePreview" src="" class="max-h-48 mx-auto rounded-lg shadow-md border-4 border-white">
@@ -377,11 +407,6 @@
         </div>
     </div>
 
-    <!-- ADMIN PANEL BUTTON -->
-    <div class="fixed bottom-4 left-4 z-50">
-         <button onclick="requestAdminAccess()" class="admin-btn bg-white/90 hover:bg-white text-gray-600 hover:text-red-600 p-3 rounded-full backdrop-blur-md transition shadow-lg border border-white"><i class="fas fa-lock text-xl"></i></button>
-    </div>
-
     <!-- ADMIN PANEL MODAL -->
     <div id="adminPanel" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-center items-center p-4">
         <div class="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
@@ -400,7 +425,7 @@
         </div>
     </div>
 
-    <!-- EDIT SCOUT MODAL (NEW) -->
+    <!-- EDIT SCOUT MODAL -->
     <div id="editModal" class="hidden fixed inset-0 z-[60] modal-overlay flex justify-center items-center p-4">
         <div class="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl relative">
             <button onclick="closeEditModal()" class="absolute top-4 left-4 text-gray-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
@@ -615,6 +640,14 @@
 
         document.getElementById('scoutForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            // MANDATORY IMAGE CHECK
+            if (!selectedImageBase64) {
+                const roleTitle = selectedRole === 'scout' ? 'يا بطل' : 'يا جميلة';
+                alert(`لازم تختار صورة ${roleTitle}!`);
+                return;
+            }
+
             const btn = document.getElementById('submitBtn');
             const originalBtn = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ثواني...'; btn.disabled = true;
